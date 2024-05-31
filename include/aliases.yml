@@ -11,5 +11,6 @@ aliases:
   pypi: https://files.pythonhosted.org/packages/
 
   # git aliases go here
+  code_videolan: https://code.videolan.org/
   github: https://github.com/
   gitlab: https://gitlab.com/
