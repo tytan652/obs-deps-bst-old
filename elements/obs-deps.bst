@@ -13,3 +13,4 @@ depends:
 - components/srt.bst
 - components/svt-av1.bst
 - components/x264.bst
+- qsv-maybe.bst

@@ -1,0 +1,35 @@
+kind: cmake
+
+build-depends:
+- freedesktop-sdk.bst:public-stacks/buildsystem-cmake.bst
+
+depends:
+- freedesktop-sdk.bst:bootstrap-import.bst
+
+variables:
+  cmake-local: >-
+    -DBUILD_SHARED_LIBS=ON
+    -DENABLE_LIBDIR_IN_RUNTIME_SEARCH=ON
+    -DINSTALL_DEV=ON
+    -DBUILD_EXPERIMENTAL=OFF
+    -DBUILD_EXAMPLES=OFF
+
+public:
+  bst:
+    split-rules:
+      # Put the vars.sh script in etc and examples as extra
+      extra:
+        - "%{sysconfdir}"
+        - "%{sysconfdir}/**"
+        - "%{datadir}/vpl/examples"
+        - "%{datadir}/vpl/examples/**"
+      runtime:
+        (>):
+        - "%{datadir}"
+        - "%{datadir}/**"
+
+sources:
+- kind: git_repo
+  url: github:intel/libvpl.git
+  track: v2.11.0
+  ref: 11a9bbda5b22ac1c544da59b4007bb57f737b487
