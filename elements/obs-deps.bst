@@ -6,3 +6,4 @@ depends:
 - components/mbedtls.bst
 - components/nv-codec.bst
 - components/srt.bst
+- components/svt-av1.bst
