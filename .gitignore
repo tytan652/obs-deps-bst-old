@@ -1,0 +1,6 @@
+# Ignore BuildStream cache folder
+.bst
+.bst/*
+# Ignore artifact output directory
+/flatpak*
+/flatpak*/*
