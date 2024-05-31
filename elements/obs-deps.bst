@@ -2,6 +2,7 @@ kind: stack
 description: Stack of OBS Studio non-Qt dependencies
 
 depends:
+- components/asio.bst
 - components/ffmpeg.bst
 - components/jansson.bst
 - components/libajantv2.bst
