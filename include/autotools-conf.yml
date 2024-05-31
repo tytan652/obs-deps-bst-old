@@ -1,0 +1,47 @@
+variables:
+  build-dir: _builddir
+
+  conf-host: |
+    --host=%{triplet}
+  conf-build: |
+    --build=%{triplet}
+
+  remove-libtool-modules: "true"
+  remove-libtool-libraries: "true"
+
+  conf-global: >-
+    --enable-shared
+    --disable-static
+    %{conf-build}
+    %{conf-host}
+  conf-cmd: configure
+
+config:
+  configure-commands:
+  - |
+    %{autogen}
+    if [ -n "%{build-dir}" ]; then
+      mkdir %{build-dir}
+      cd %{build-dir}
+      reldir=..
+    else
+      reldir=.
+    fi
+    ${reldir}/%{configure}
+
+  build-commands:
+  - |
+    if [ -n "%{build-dir}" ]; then
+      cd %{build-dir}
+    fi
+    %{make}
+
+  install-commands:
+  - |
+    if [ -n "%{build-dir}" ]; then
+      cd %{build-dir}
+    fi
+    %{make-install}
+
+  - |
+    %{delete-libtool-archives}
