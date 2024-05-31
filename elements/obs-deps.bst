@@ -5,3 +5,4 @@ depends:
 - components/librist.bst
 - components/mbedtls.bst
 - components/nv-codec.bst
+- components/srt.bst
