@@ -16,5 +16,6 @@ depends:
 - components/rnnoise.bst
 - components/srt.bst
 - components/svt-av1.bst
+- components/uthash.bst
 - components/x264.bst
 - qsv-maybe.bst
