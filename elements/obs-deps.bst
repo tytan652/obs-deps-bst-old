@@ -11,6 +11,7 @@ depends:
 - components/librist.bst
 - components/luajit.bst
 - components/mbedtls.bst
+- components/nlohmann-json.bst
 - components/nv-codec.bst
 - components/rnnoise.bst
 - components/srt.bst
