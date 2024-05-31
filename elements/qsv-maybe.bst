@@ -6,3 +6,4 @@ description: Enable QSV (Intel) dependencies depending on the targeted arch
     depends:
       - components/intel-media-sdk.bst
       - components/libvpl.bst
+      - components/vpl-gpu-rt.bst
