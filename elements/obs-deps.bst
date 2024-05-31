@@ -5,6 +5,7 @@ depends:
 - components/ffmpeg.bst
 - components/jansson.bst
 - components/libdatachannel.bst
+- components/libqrcodegencpp.bst
 - components/librist.bst
 - components/luajit.bst
 - components/mbedtls.bst
