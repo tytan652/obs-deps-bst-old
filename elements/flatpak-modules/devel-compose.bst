@@ -9,3 +9,6 @@ config:
     - exec-blocklist
     - extra
     - runtime
+
+build-depends:
+- obs-deps.bst

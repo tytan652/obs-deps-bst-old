@@ -10,4 +10,5 @@ config:
     - extra
 
 build-depends:
+- obs-deps.bst
 - manifest.bst
