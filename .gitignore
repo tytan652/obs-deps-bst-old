@@ -1,6 +1,8 @@
 # Ignore BuildStream cache folder
 .bst
 .bst/*
+# Ignore Python cache folder
+__pycache__
 # Ignore artifact output directory
 /flatpak*
 /flatpak*/*
