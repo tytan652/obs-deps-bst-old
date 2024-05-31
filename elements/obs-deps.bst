@@ -4,6 +4,7 @@ description: Stack of OBS Studio non-Qt dependencies
 depends:
 - components/ffmpeg.bst
 - components/jansson.bst
+- components/libajantv2.bst
 - components/libdatachannel.bst
 - components/libqrcodegencpp.bst
 - components/librist.bst
