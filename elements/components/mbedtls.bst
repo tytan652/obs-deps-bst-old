@@ -15,6 +15,53 @@ variables:
     -DENABLE_TESTING=OFF
     -DENABLE_PROGRAMS=OFF
 
+config:
+  install-commands:
+    (>):
+    - |
+      mkdir -p '%{install-root}%{libdir}/pkgconfig'
+
+      cat <<EOF > '%{install-root}%{libdir}/pkgconfig/mbedcrypto.pc'
+      prefix=%{prefix}
+      exec_prefix=%{exec_prefix}
+      libdir=%{libdir}
+      includedir=%{includedir}
+
+      Name: mbedcrypto
+      Description: lightweight crypto and SSL/TLS library.
+      Version: %{mbedtls-version}
+      Libs: -L\${libdir} -lmbedcrypto
+      Cflags: -I\${includedir}
+      EOF
+
+      cat <<EOF > '%{install-root}%{libdir}/pkgconfig/mbedtls.pc'
+      prefix=%{prefix}
+      exec_prefix=%{exec_prefix}
+      libdir=%{libdir}
+      includedir=%{includedir}
+
+      Name: mbedtls
+      Description: lightweight crypto and SSL/TLS library.
+      Version: %{mbedtls-version}
+      Libs: -L\${libdir} -lmbedtls
+      Cflags: -I\${includedir}
+      Require.private: mbedx509
+      EOF
+
+      cat <<EOF > '%{install-root}%{libdir}/pkgconfig/mbedx509.pc'
+      prefix=%{prefix}
+      exec_prefix=%{exec_prefix}
+      libdir=%{libdir}
+      includedir=%{includedir}
+
+      Name: mbedx509
+      Description: The mbedTLS X.509 library
+      Version: %{mbedtls-version}
+      Libs: -L\${libdir} -lmbedx509
+      Cflags: -I\${includedir}
+      Require.private: mbedcrypto
+      EOF
+
 sources:
 - kind: git_repo
   url: github:Mbed-TLS/mbedtls.git
