@@ -1,5 +1,5 @@
 kind: compose
-description: Composition to allow only headers
+description: Composition to allow only headers and pkg-config files
 
 config:
   exclude:
