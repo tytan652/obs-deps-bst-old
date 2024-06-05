@@ -16,6 +16,22 @@ inputs:
     description: Path to the log folder that BuildStream will use to store logs
     required: false
     default:  ${{ github.workspace }}/.bst/logs
+  add-local-cache-server-config:
+    description: Add 127.0.0.1:local-cache-server-port as project cache server (none, artifacts, sources, both)
+    required: false
+    default: 'none'
+  local-cache-server-port:
+    description: Port of the local cache server
+    required: false
+    default: 11001
+  local-cache-server-push:
+    description: Enable pushing to the local cache server (none, artifacts, sources, both)
+    required: false
+    default: 'none'
+  buildstream-project-name:
+    description: Name used for cache server setup
+    required: false
+    default: '${GITHUB_REPOSITORY#*/}'
 outputs:
   activate-path:
     description: Path to the Python venv activate script
@@ -29,6 +45,12 @@ outputs:
   logs-path:
     description: Path to the log folder that BuildStream uses to store logs
     value: ${{ inputs.logs-path }}
+  local-cache-server-port:
+    description: Port of the local cache server
+    value: ${{ inputs.local-cache-server-port }}
+  local-cache-server-url:
+    description: Url of the local cache server
+    value: http://127.0.0.1:${{ inputs.local-cache-server-port }}
 runs:
   using: composite
   steps:
@@ -47,6 +69,37 @@ runs:
         : Check Runner Architecture
         echo "::notice::setup-buildstream action requires a x86_64 runner."
         exit 2
+
+    - name: Check Action Inputs
+      shell: bash
+      run: |
+        : Check Action Inputs
+
+        echo ::group::Check add-local-cache-server-config
+        case "${{ inputs.add-local-cache-server-config }}" in
+          none);;
+          artifacts);;
+          sources);;
+          both);;
+          *)
+            echo "::error::add-local-cache-server-config is incorrect"
+            exit 2
+            ;;
+        esac
+        echo ::endgroup::
+
+        echo ::group::Check local-cache-server-push
+        case "${{ inputs.local-cache-server-push }}" in
+          none);;
+          artifacts);;
+          sources);;
+          both);;
+          *)
+            echo "::error::local-cache-server-push is incorrect"
+            exit 2
+            ;;
+        esac
+        echo ::endgroup::
 
     - name: Install buildbox-integration
       env:
@@ -117,8 +170,37 @@ runs:
       shell: bash
       run: |
         : Setup BuildStream config file
+
+        echo ::group::Generate config file
         cat <<EOF > ~/.config/buildstream.conf
         sourcedir: ${{ inputs.sources-path }}
         cachedir: ${{ inputs.caches-path }}
         logdir: ${{ inputs.logs-path }}
         EOF
+
+        {
+          if [[ "${{ inputs.add-local-cache-server-config }}" != "none" ]]; then
+
+            echo "projects:"
+            echo "  ${{ inputs.buildstream-project-name }}:"
+
+            if [[ "${{ inputs.add-local-cache-server-config }}" == "artifacts" ]] || [[ "${{ inputs.add-local-cache-server-config }}" == "both" ]]; then
+              echo "    artifacts:"
+              echo "      servers:"
+              echo "      - url: http://127.0.0.1:${{ inputs.local-cache-server-port }}"
+              echo "        push: ${{ (inputs.local-cache-server-push == 'artifacts') || (inputs.local-cache-server-push == 'both') }}"
+            fi
+
+            if [[ "${{ inputs.add-local-cache-server-config }}" == "sources" ]] || [[ "${{ inputs.add-local-cache-server-config }}" == "both" ]]; then
+              echo "    source-caches:"
+              echo "      servers:"
+              echo "      - url: http://127.0.0.1:${{ inputs.local-cache-server-port }}"
+              echo "        push: ${{ (inputs.local-cache-server-push == 'sources') || (inputs.local-cache-server-push == 'both') }}"
+            fi
+          fi
+        } >> ~/.config/buildstream.conf
+        echo ::endgroup::
+
+        echo ::group::Print generated config file
+        cat ~/.config/buildstream.conf
+        echo ::endgroup::
