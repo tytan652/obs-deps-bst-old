@@ -1,0 +1,124 @@
+name: Setup BuildStream
+inputs:
+  venv-path:
+    description: Path to the Python venv folder created for BuildStream
+    required: false
+    default: ${{ github.workspace }}/.venv
+  caches-path:
+    description: Path to the cache folder that BuildStream will use to cache artifacts
+    required: false
+    default:  ${{ github.workspace }}/.bst/caches
+  sources-path:
+    description: Path to the cache folder that BuildStream will use to cache sources
+    required: false
+    default:  ${{ github.workspace }}/.bst/sources
+  logs-path:
+    description: Path to the log folder that BuildStream will use to store logs
+    required: false
+    default:  ${{ github.workspace }}/.bst/logs
+outputs:
+  activate-path:
+    description: Path to the Python venv activate script
+    value: ${{ steps.install-buildstream.outputs.activate-path }}
+  caches-path:
+    description: Path to the cache folder that BuildStream uses to cache artifacts
+    value: ${{ inputs.caches-path }}
+  sources-path:
+    description: Path to the cache folder that BuildStream uses to cache sources
+    value: ${{ inputs.sources-path }}
+  logs-path:
+    description: Path to the log folder that BuildStream uses to store logs
+    value: ${{ inputs.logs-path }}
+runs:
+  using: composite
+  steps:
+    - name: Check Runner Operating System
+      if: runner.os != 'Linux'
+      shell: bash
+      run: |
+        : Check Runner Operating System
+        echo "::notice::setup-buildstream action requires a Ubuntu runner."
+        exit 2
+
+    - name: Check Runner Architecture
+      if: runner.arch != 'x64'
+      shell: bash
+      run: |
+        : Check Runner Architecture
+        echo "::notice::setup-buildstream action requires a x86_64 runner."
+        exit 2
+
+    - name: Install buildbox-integration
+      env:
+          DOWNLOAD_URL: https://gitlab.com/api/v4/projects/8347934/packages/generic/releases/1.1.0/buildbox-1.1.0-x86_64-linux-gnu.tgz
+          DOWNLOAD_SHA256: e2e63112290b5bd6a64ccf26e40a53b73badb7b88dd98b20fca48a8050f93361
+      shell: bash
+      run: |
+        : Install buildbox-integration
+
+        echo ::group::Install dependencies
+        sudo apt-get install bubblewrap fuse3
+        echo ::endgroup
+
+        echo ::group::Create download directory
+        DOWNLOAD_DIR=$(mktemp -d)
+        echo ::endgroup::
+
+        echo ::group::Download tarball
+        DOWNLOAD_FILE="${DOWNLOAD_DIR}/$(basename ${DOWNLOAD_URL})"
+
+        curl ${DOWNLOAD_URL} --location --output ${DOWNLOAD_FILE}
+        echo ::endgroup::
+
+        echo ::group::Check sha256sum
+        echo "${DOWNLOAD_SHA256} ${DOWNLOAD_FILE}" | sha256sum --check --status
+        echo ::endgroup::
+
+        echo ::group::Extract to ~/.local/bin
+        mkdir ~/.local/bin
+        tar -zxvf ${DOWNLOAD_FILE} -C ~/.local/bin
+        echo ::endgroup::
+
+        echo ::group::Cleanup download directory
+        rm -rf DOWNLOAD_DIR
+        echo ::endgroup::
+
+    - name: Install BuildStream
+      id: install-buildstream
+      env:
+        ACTIVATE_PATH: ${{ inputs.venv-path }}/bin/activate
+      shell: bash
+      run: |
+        : Install BuildStream
+        echo ::group::Create and activate Python venv
+        python -m venv ${{ inputs.venv-path }}
+        echo "activate-path=${ACTIVATE_PATH}" >> $GITHUB_OUTPUT
+        source ${ACTIVATE_PATH}
+        echo ::endgroup::
+
+        echo ::group::Install BuildStream
+        sudo apt-get install lzip
+        pip install -U BuildStream
+        echo ::endgroup::
+
+    - name: Install BuildStream plugins dependencies
+      shell: bash
+      run: |
+        : Install BuildStream plugins dependencies
+        echo ::group::Activate Python venv
+        source ${{ steps.install-buildstream.outputs.activate-path }}
+        echo ::endgroup::
+
+        echo ::group::Install plugins dependencies
+        pip install -U dulwich>=0.21.7 requests packaging tomli
+        echo ::endgroup::
+
+    - name: Setup BuildStream config file
+      shell: bash
+      run: |
+        : Setup BuildStream config file
+        cat <<EOF > ~/.config/buildstream.conf
+        sourcedir: ${{ inputs.sources-path }}
+        cachedir: ${{ inputs.caches-path }}
+        logdir: ${{ inputs.logs-path }}
+        EOF

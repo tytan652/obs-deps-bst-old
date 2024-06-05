@@ -1,0 +1,30 @@
+name: Build BuildStream Element
+inputs:
+  activate-path:
+    description: Path to the Python venv (with BuildStream) activate script
+    required: true
+  element:
+    description: BuildStream element to build
+    required: true
+  logs-path:
+    description: Path to the log folder that BuildStream uses to store logs
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Build ${{ inputs.element }}
+      id: build
+      shell: bash
+      run: |
+        : Build ${{ inputs.element }}
+        element="${{ inputs.element }}"
+        echo "sanitized-element=${element//\//-}" >> $GITHUB_OUTPUT
+        source ${{ inputs.activate-path }}
+        bst --no-interactive build ${{ inputs.element }}
+
+    - name: Upload Logs On Failure
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.build.outputs.sanitized-element }}.logs
+        path: ${{ inputs.logs-path }}

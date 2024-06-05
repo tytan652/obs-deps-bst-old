@@ -1,0 +1,26 @@
+name: Build Project
+on:
+  workflow_call:
+jobs:
+  obs-deps-bst:
+    name: Build obs-deps.bst
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 10240
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup BuildStream
+        id: setup-buildstream
+        uses: ./.github/actions/setup-buildstream
+
+      - name: Build obs-deps.bst
+        uses: ./.github/actions/build-bst-element
+        with:
+          activate-path: ${{ steps.setup-buildstream.outputs.activate-path }}
+          element: obs-deps.bst
+          logs-path: ${{ steps.setup-buildstream.outputs.logs-path }}
