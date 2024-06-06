@@ -15,8 +15,14 @@ inputs:
     description: Port to be binded to the buildbox-casd container
     required: false
     default: 11001
+  server-quota-high:
+    description: |
+      Maximum local cache size option from buildbox-casd (e.g., 50G or 2T).
+      It allows to limit the size of the uploaded cache, it will purge old elements if reached.
+    required: false
+    default: 1G
   server-reserved:
-    description: Reserved disk space to buildbox-casd
+    description: Reserved disk space option from buildbox-casd
     required: false
     default: 2G
 outputs:
@@ -60,7 +66,7 @@ runs:
       env:
         PODMAN_IMAGE: registry.gitlab.com/freedesktop-sdk/infrastructure/freedesktop-sdk-docker-images/buildbox-casd:latest
         CONTAINER_NAME: buildbox-casd
-        ENTRYPOINT: '["/usr/bin/buildbox-casd", "--bind", "0.0.0.0:${{ inputs.server-port }}", "--reserved", "${{ inputs.server-reserved }}", "/srv/cas"]'
+        ENTRYPOINT: '["/usr/bin/buildbox-casd", "--bind", "0.0.0.0:${{ inputs.server-port }}", "--reserved", "${{ inputs.server-reserved }}", "--quota-high", "${{ inputs.server-quota-high }}", "/srv/cas"]'
       run: |
         : Setup buildbox-casd Container
 

@@ -29,6 +29,7 @@ jobs:
         id: cache-restore
         uses: ./.github/actions/cache-restore
         with:
+          server-quota-high: 2G
           key: ${{ env.CACHE_KEY_PREFIX }}${{ hashFiles('project.conf', 'elements/**/*.bst', 'include/*', 'patches/**/*.patch', 'plugins/**/*.py') }}
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}
