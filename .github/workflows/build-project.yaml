@@ -1,12 +1,17 @@
 name: Build Project
 on:
   workflow_call:
+    inputs:
+      upload-artifacts:
+        description: Upload generated artifacts
+        default: false
+        type: boolean
+env:
+  CACHE_KEY_PREFIX: obs-deps-bst-x86_64-
 jobs:
   obs-deps-bst:
-    name: Build obs-deps.bst
+    name: Pre-build obs-deps.bst
     runs-on: ubuntu-22.04
-    env:
-      CACHE_KEY_PREFIX: obs-deps-bst-x86_64-
     outputs:
       cache-key: ${{ steps.cache-restore.outputs.cache-primary-key }}
     steps:
@@ -47,3 +52,59 @@ jobs:
         with:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
           path: ${{ steps.cache-restore.outputs.cache-path }}
+
+  flatpak-modules:
+    runs-on: ubuntu-22.04
+    needs: obs-deps-bst
+    strategy:
+      matrix:
+        modules: [base, devel, devtools]
+    name: Generate ${{ matrix.modules }} Flatpak Module
+    env:
+      ELEMENT: flatpak-modules/${{ matrix.modules }}-tarball.bst
+      FILENAME: flatpak-${{ matrix.modules }}-x86_64
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 10240
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup BuildStream
+        id: setup-buildstream
+        uses: ./.github/actions/setup-buildstream
+        with:
+          add-local-cache-server-config: 'both'
+
+      - name: Restore buildbox-casd Cache
+        id: cache-restore
+        uses: ./.github/actions/cache-restore
+        with:
+          server-quota-high: 2G
+          key: ${{ needs.obs-deps-bst.outputs.cache-key }}
+          restore-keys: |
+            ${{ env.CACHE_KEY_PREFIX }}
+
+      - name: Build ${{ env.ELEMENT }}
+        uses: ./.github/actions/build-bst-element
+        with:
+          activate-path: ${{ steps.setup-buildstream.outputs.activate-path }}
+          element: ${{ env.ELEMENT }}
+          logs-path: ${{ steps.setup-buildstream.outputs.logs-path }}
+
+      - name: Prepare ${{ matrix.modules }} Tarball
+        if: ${{ inputs.upload-artifacts }}
+        shell: bash
+        run: |
+          : Prepare ${{ matrix.modules }} Tarball
+          source ${{ steps.setup-buildstream.outputs.activate-path }}
+          bst --no-interactive artifact checkout ${{ env.ELEMENT }} --tar - | xz -T0 > ${{ env.FILENAME }}.tar.xz
+
+      - name: Upload ${{ matrix.modules }} Tarball
+        if: ${{ inputs.upload-artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILENAME }}
+          path: ${{ env.FILENAME }}.tar.xz

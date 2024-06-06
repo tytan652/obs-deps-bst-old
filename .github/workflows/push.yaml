@@ -15,3 +15,5 @@ jobs:
   build-project:
     name: Build Project
     uses: ./.github/workflows/build-project.yaml
+    with:
+      upload-artifacts: ${{ github.ref == 'refs/heads/master' }}
