@@ -1,0 +1,78 @@
+name: Restore buildbox-casd Cache
+description: Restore buildbox-casd Podman container with its cache if available
+inputs:
+  key:
+    description: An explicit key for restoring the cache
+    required: true
+  restore-keys:
+    description: An ordered list of keys to use for restoring stale cache if no cache hit occurred for key.
+    required: false
+  path:
+    description: Path to the buildbox-casd folder
+    required: false
+    default: ${{ github.workspace }}/.bst/buildbox-casd
+  server-port:
+    description: Port to be binded to the buildbox-casd container
+    required: false
+    default: 11001
+  server-reserved:
+    description: Reserved disk space to buildbox-casd
+    required: false
+    default: 2G
+outputs:
+  cache-path:
+    description: Path to the buildbox-casd folder
+    value: ${{ inputs.path }}
+  cache-server-port:
+    description: Port binded to the buildbox-casd container
+    value: ${{ inputs.server-port }}
+  cache-hit:
+    description: A boolean value to indicate an exact match was found for the primary key
+    value: ${{ steps.restore.outputs.cache-hit }}
+  cache-primary-key:
+    description: A resolved cache key for which cache match was attempted
+    value: ${{ steps.restore.outputs.cache-primary-key }}
+  cache-matched-key:
+    description: Key of the cache that was restored, it could either be the primary key on cache-hit or a partial/complete match of one of the restore keys
+    value: ${{ steps.restore.outputs.cache-matched-key }}
+runs:
+  using: composite
+  steps:
+    - name: Check Runner Operating System
+      if: runner.os != 'Linux'
+      shell: bash
+      run: |
+        : Check Runner Operating System
+        echo "::notice::cache-restore action requires a Linux-based runner."
+        exit 2
+
+    - name: Restore Cache
+      id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ inputs.path }}
+        key: ${{ inputs.key }}
+        restore-keys: ${{ inputs.restore-keys }}
+
+    - name: Setup buildbox-casd Container
+      id: container
+      shell: bash
+      env:
+        PODMAN_IMAGE: registry.gitlab.com/freedesktop-sdk/infrastructure/freedesktop-sdk-docker-images/buildbox-casd:latest
+        CONTAINER_NAME: buildbox-casd
+        ENTRYPOINT: '["/usr/bin/buildbox-casd", "--bind", "0.0.0.0:${{ inputs.server-port }}", "--reserved", "${{ inputs.server-reserved }}", "/srv/cas"]'
+      run: |
+        : Setup buildbox-casd Container
+
+        echo ::group::Pull image
+        podman pull ${PODMAN_IMAGE}
+        echo ::endgroup::
+
+        echo ::group::Create container
+        mkdir -p ${{ github.workspace }}/.bst/buildbox-casd
+        podman create --name="${CONTAINER_NAME}" -p ${{ inputs.server-port }}:${{ inputs.server-port }} -v ${{ inputs.path }}:/srv/cas --entrypoint='${{ env.ENTRYPOINT }}' ${PODMAN_IMAGE}
+        echo ::endgroup::
+
+        echo ::group::Start container
+        podman start ${CONTAINER_NAME}
+        echo ::endgroup::

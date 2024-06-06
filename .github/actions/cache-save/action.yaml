@@ -1,0 +1,29 @@
+name: Save buildbox-casd Cache
+description: Save buildbox-casd Podman container cache
+inputs:
+  key:
+    description: An explicit key for restoring the cache (e.g. cache-primary-key from its restore counterpart)
+    required: true
+  path:
+    description: Path to the buildbox-casd folder (e.g. cache-path from its restore counterpart)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Check Runner Operating System
+      if: runner.os != 'Linux'
+      shell: bash
+      run: |
+        : Check Runner Operating System
+        echo "::notice::cache-save action requires a Linux-based runner."
+        exit 2
+
+    - name: Stop buildbox-casd Container
+      shell: bash
+      run: podman stop buildbox-casd
+
+    - name: Save Cache
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}

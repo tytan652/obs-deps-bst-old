@@ -5,6 +5,10 @@ jobs:
   obs-deps-bst:
     name: Build obs-deps.bst
     runs-on: ubuntu-22.04
+    env:
+      CACHE_KEY_PREFIX: obs-deps-bst-x86_64-
+    outputs:
+      cache-key: ${{ steps.cache-restore.outputs.cache-primary-key }}
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
@@ -17,6 +21,17 @@ jobs:
       - name: Setup BuildStream
         id: setup-buildstream
         uses: ./.github/actions/setup-buildstream
+        with:
+          add-local-cache-server-config: 'both'
+          local-cache-server-push: 'both'
+
+      - name: Restore buildbox-casd Cache
+        id: cache-restore
+        uses: ./.github/actions/cache-restore
+        with:
+          key: ${{ env.CACHE_KEY_PREFIX }}${{ hashFiles('project.conf', 'elements/**/*.bst', 'include/*', 'patches/**/*.patch', 'plugins/**/*.py') }}
+          restore-keys: |
+            ${{ env.CACHE_KEY_PREFIX }}
 
       - name: Build obs-deps.bst
         uses: ./.github/actions/build-bst-element
@@ -24,3 +39,10 @@ jobs:
           activate-path: ${{ steps.setup-buildstream.outputs.activate-path }}
           element: obs-deps.bst
           logs-path: ${{ steps.setup-buildstream.outputs.logs-path }}
+
+      - name: Save buildbox-casd Cache
+        if: ${{ github.ref == 'refs/heads/master' && (steps.cache-restore.outputs.cache-hit != 'true') }}
+        uses: ./.github/actions/cache-save
+        with:
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          path: ${{ steps.cache-restore.outputs.cache-path }}
