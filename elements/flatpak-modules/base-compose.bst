@@ -12,3 +12,4 @@ config:
 build-depends:
 - obs-deps.bst
 - manifest.bst
+- flatpak-modules/fixup-debugdir.bst
