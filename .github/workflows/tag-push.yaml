@@ -1,0 +1,51 @@
+name: Tag Push
+run-name: ${{ github.ref_name }} push run
+on:
+  push:
+    tags:
+      - '20[2-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+
+jobs:
+  build-project:
+    name: Build Project
+    uses: ./.github/workflows/build-project.yaml
+    with:
+      upload-artifacts: true
+
+  make-release:
+    name: Create and Upload Release
+    runs-on: ubuntu-22.04
+    needs: build-project
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Prepare Tarballs
+        run: |
+          : Prepare Tarballs
+          shopt -s extglob
+
+          echo ::group::Rename Tarballs
+          for artifact in ${{ github.workspace }}/**/flatpak-*.tar.xz; do
+            filename="$(basename ${artifact})"
+            mv ${artifact} ${{github.workspace}}/${filename%%.*}-${{ github.ref_name }}.tar.xz
+          done
+          echo ::endgroup::
+
+          echo ::group::Generate Checksums
+          echo "### Checksums" > ${{ github.workspace }}/CHECKSUMS.txt
+          for file in ${{ github.workspace }}/*.tar.xz; do
+            echo "    ${file##*/}: $(sha256sum "${file}" | cut -d " " -f 1)" >> ${{ github.workspace }}/CHECKSUMS.txt
+          done
+          echo ::endgroup::
+
+      - name: Create Release
+        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
+        with:
+          draft: false
+          prerelease: false
+          tag_name: ${{ github.ref_name }}
+          name: OBS Flatpak Deps Build ${{ github.ref_name }}
+          body_path: ${{ github.workspace }}/CHECKSUMS.txt
+          files: |
+            ${{ github.workspace }}/flatpak-*.tar.xz
