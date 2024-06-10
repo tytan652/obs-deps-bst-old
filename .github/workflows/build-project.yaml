@@ -40,6 +40,8 @@ jobs:
             ${{ env.CACHE_KEY_PREFIX }}
 
       - name: Build obs-deps.bst
+        id: build
+        if: ${{ (github.ref == 'refs/heads/master') && (steps.cache-restore.outputs.cache-hit != 'true') }}
         uses: ./.github/actions/build-bst-element
         with:
           activate-path: ${{ steps.setup-buildstream.outputs.activate-path }}
@@ -47,11 +49,21 @@ jobs:
           logs-path: ${{ steps.setup-buildstream.outputs.logs-path }}
 
       - name: Save buildbox-casd Cache
-        if: ${{ github.ref == 'refs/heads/master' && (steps.cache-restore.outputs.cache-hit != 'true') }}
+        if: ${{ steps.build.conclusion == 'success' }}
         uses: ./.github/actions/cache-save
         with:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
           path: ${{ steps.cache-restore.outputs.cache-path }}
+
+      - name: Build Skipped
+        if: ${{ steps.build.conclusion == 'skipped' }}
+        shell: bash
+        run: |
+          if [[ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]]; then
+            echo "::notice::Building was skipped since the build cache will not be saved"
+          else
+            echo "::notice::Building was skipped since a matching build cache is already available"
+          fi
 
   flatpak-modules:
     runs-on: ubuntu-22.04
