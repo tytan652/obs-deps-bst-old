@@ -17,3 +17,7 @@ jobs:
     uses: ./.github/workflows/build-project.yaml
     with:
       upload-artifacts: ${{ github.ref == 'refs/heads/master' }}
+
+  check-code:
+    name: Check Code Changes
+    uses: ./.github/workflows/check-code.yaml
