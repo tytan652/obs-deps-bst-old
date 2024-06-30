@@ -1,0 +1,45 @@
+name: Pull Request
+run-name: ${{ github.event.pull_request.title }} pull request run
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  pre-checks:
+    name: Pre-Checks
+    runs-on: ubuntu-22.04
+    outputs:
+      seeking_testers: ${{ steps.labels.outputs.seeking_testers }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for Github Labels
+        id: labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          : Check for GitHub Labels
+
+          if gh pr view ${{ github.event.number }} --json labels \
+            | jq -e -r '.labels[] | select(.name == "Seeking Testers")' > /dev/null; then
+            echo "seeking_testers=true" >> $GITHUB_OUTPUT
+          else
+            echo "seeking_testers=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-project:
+    name: Build Project
+    needs: pre-checks
+    uses: ./.github/workflows/build-project.yaml
+    with:
+      upload-artifacts: ${{ needs.pre-checks.outputs.seeking_testers == 'true' }}
+
+  check-code:
+    name: Check Code Changes
+    uses: ./.github/workflows/check-code.yaml
